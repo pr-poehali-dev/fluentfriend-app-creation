@@ -31,12 +31,11 @@ Rules:
 - Only correct ONE error at a time (the most important one)
 - If the message is grammatically correct, set correction to null
 - Always respond in valid JSON only, no markdown, no extra text
-- Explanation must be in Russian
-"""
+- Explanation must be in Russian"""
 
 
 def handler(event: dict, context) -> dict:
-    """ИИ-репетитор английского языка на базе YandexGPT."""
+    """ИИ-репетитор английского языка на базе DeepSeek."""
     if event.get("httpMethod") == "OPTIONS":
         return {
             "statusCode": 200,
@@ -60,43 +59,27 @@ def handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "message is required"}),
         }
 
-    oauth_token = "y0__wgBEKnHt4YHGMHdEyDdr_umFzCm6brmB17GWgJoTX0Zjg8B-KwZAMHWzrP5"  # v5
-    folder_id = "b1gtt57bmldd2u69h26h"
+    api_key = os.environ["DEEPSEEK_API_KEY"]
 
-    # Получаем IAM-токен из OAuth
-    iam_payload = json.dumps({"yandexPassportOauthToken": oauth_token}).encode("utf-8")
-    iam_req = urllib.request.Request(
-        "https://iam.api.cloud.yandex.net/iam/v1/tokens",
-        data=iam_payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(iam_req, timeout=10) as iam_resp:
-        iam_token = json.loads(iam_resp.read())["iamToken"]
-
-    messages = [{"role": "system", "text": SYSTEM_PROMPT}]
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for h in history[-10:]:
-        role = "user" if h["role"] == "user" else "assistant"
-        messages.append({"role": role, "text": h["content"]})
-    messages.append({"role": "user", "text": user_message})
+        messages.append({"role": h["role"], "content": h["content"]})
+    messages.append({"role": "user", "content": user_message})
 
     payload = json.dumps({
-        "modelUri": f"gpt://{folder_id}/yandexgpt-lite",
-        "completionOptions": {
-            "stream": False,
-            "temperature": 0.7,
-            "maxTokens": "500",
-        },
+        "model": "deepseek-chat",
         "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 500,
+        "response_format": {"type": "json_object"},
     }).encode("utf-8")
 
     req = urllib.request.Request(
-        "https://llm.api.cloud.yandex.net/foundationModels/v1/completion",
+        "https://api.deepseek.com/chat/completions",
         data=payload,
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {iam_token}",
-            "x-folder-id": folder_id,
+            "Authorization": f"Bearer {api_key}",
         },
         method="POST",
     )
@@ -109,17 +92,10 @@ def handler(event: dict, context) -> dict:
         return {
             "statusCode": 502,
             "headers": {"Access-Control-Allow-Origin": "*"},
-            "body": json.dumps({"error": f"YandexGPT error {e.code}: {error_body}"}),
+            "body": json.dumps({"error": f"DeepSeek error {e.code}: {error_body}"}),
         }
 
-    content = result["result"]["alternatives"][0]["message"]["text"]
-
-    # YandexGPT иногда оборачивает ответ в ```json ... ```
-    if "```" in content:
-        content = content.split("```")[1]
-        if content.startswith("json"):
-            content = content[4:].strip()
-
+    content = result["choices"][0]["message"]["content"]
     parsed = json.loads(content)
 
     return {
