@@ -1,9 +1,6 @@
 import json
 import os
-import uuid
-
 import urllib.request
-import ssl
 
 
 SYSTEM_PROMPT = """You are FluentFriend — a friendly English tutor. Your job is to:
@@ -36,30 +33,8 @@ Rules:
 - Explanation must be in Russian"""
 
 
-def get_gigachat_token() -> str:
-    credentials = os.environ["GIGACHAT_CREDENTIALS"]
-    payload = "scope=GIGACHAT_API_PERS".encode("utf-8")
-    req = urllib.request.Request(
-        "https://ngw.devices.sberbank.ru:9443/api/v2/oauth",
-        data=payload,
-        headers={
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Accept": "application/json",
-            "Authorization": f"Basic {credentials}",
-            "RqUID": str(uuid.uuid4()),
-        },
-        method="POST",
-    )
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    with urllib.request.urlopen(req, context=ctx) as resp:
-        data = json.loads(resp.read())
-    return data["access_token"]
-
-
 def handler(event: dict, context) -> dict:
-    """ИИ-репетитор английского языка на базе GigaChat."""
+    """ИИ-репетитор английского языка на базе YandexGPT."""
     if event.get("httpMethod") == "OPTIONS":
         return {
             "statusCode": 200,
@@ -83,41 +58,44 @@ def handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "message is required"}),
         }
 
-    token = get_gigachat_token()
+    api_key = os.environ["YANDEX_API_KEY"]
+    folder_id = os.environ["YANDEX_FOLDER_ID"]
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages = [{"role": "system", "text": SYSTEM_PROMPT}]
     for h in history[-10:]:
-        messages.append({"role": h["role"], "content": h["content"]})
-    messages.append({"role": "user", "content": user_message})
+        role = "user" if h["role"] == "user" else "assistant"
+        messages.append({"role": role, "text": h["content"]})
+    messages.append({"role": "user", "text": user_message})
 
     payload = json.dumps({
-        "model": "GigaChat",
+        "modelUri": f"gpt://{folder_id}/yandexgpt-lite",
+        "completionOptions": {
+            "stream": False,
+            "temperature": 0.7,
+            "maxTokens": 500,
+        },
         "messages": messages,
-        "temperature": 0.7,
-        "max_tokens": 512,
     }).encode("utf-8")
 
     req = urllib.request.Request(
-        "https://gigachat.devices.sberbank.ru/api/v1/chat/completions",
+        "https://llm.api.cloud.yandex.net/foundationModels/v1/completion",
         data=payload,
         headers={
             "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Api-Key {api_key}",
+            "x-folder-id": folder_id,
         },
         method="POST",
     )
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    with urllib.request.urlopen(req, context=ctx) as resp:
+
+    with urllib.request.urlopen(req, timeout=25) as resp:
         result = json.loads(resp.read())
 
-    content = result["choices"][0]["message"]["content"]
+    content = result["result"]["alternatives"][0]["message"]["text"]
 
-    # GigaChat иногда оборачивает ответ в markdown-блок ```json ... ```
-    if content.strip().startswith("```"):
-        content = content.strip().strip("`").strip()
+    # YandexGPT иногда оборачивает ответ в ```json ... ```
+    if "```" in content:
+        content = content.split("```")[1]
         if content.startswith("json"):
             content = content[4:].strip()
 
