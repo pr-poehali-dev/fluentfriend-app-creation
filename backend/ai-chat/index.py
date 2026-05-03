@@ -1,6 +1,7 @@
 import json
 import os
 import urllib.request
+import urllib.error
 
 
 SYSTEM_PROMPT = """You are FluentFriend — a friendly English tutor. Your job is to:
@@ -30,7 +31,8 @@ Rules:
 - Only correct ONE error at a time (the most important one)
 - If the message is grammatically correct, set correction to null
 - Always respond in valid JSON only, no markdown, no extra text
-- Explanation must be in Russian"""
+- Explanation must be in Russian
+"""
 
 
 def handler(event: dict, context) -> dict:
@@ -72,7 +74,7 @@ def handler(event: dict, context) -> dict:
         "completionOptions": {
             "stream": False,
             "temperature": 0.7,
-            "maxTokens": 500,
+            "maxTokens": "500",
         },
         "messages": messages,
     }).encode("utf-8")
@@ -88,8 +90,16 @@ def handler(event: dict, context) -> dict:
         method="POST",
     )
 
-    with urllib.request.urlopen(req, timeout=25) as resp:
-        result = json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req, timeout=25) as resp:
+            result = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8")
+        return {
+            "statusCode": 502,
+            "headers": {"Access-Control-Allow-Origin": "*"},
+            "body": json.dumps({"error": f"YandexGPT error {e.code}: {error_body}"}),
+        }
 
     content = result["result"]["alternatives"][0]["message"]["text"]
 
