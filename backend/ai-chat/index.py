@@ -60,7 +60,7 @@ def handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "message is required"}),
         }
 
-    api_key = "AQVNyt_Q8vo40qlb1HlxStZMDjPjwlSBtyyGbV_x"
+    api_key = "AQVNyt_Q8vo40qlb1HlxStZMDjPjwlSBtyyGbV_x"  # v3
     folder_id = "b1gtt57bmldd2u69h26h"
 
     messages = [{"role": "system", "text": SYSTEM_PROMPT}]
