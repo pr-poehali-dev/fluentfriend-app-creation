@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { Tab, Chat, Message, MOCK_MESSAGES } from "@/components/fluent/types";
 import ChatTab from "@/components/fluent/ChatTab";
@@ -7,14 +7,33 @@ import ProfileTab from "@/components/fluent/ProfileTab";
 import SettingsTab from "@/components/fluent/SettingsTab";
 
 const AI_CHAT_URL = "https://functions.poehali.dev/4439836c-a584-4b76-b30a-6432ee661613";
+const STORAGE_KEY = "fluentfriend_messages";
+
+function loadMessages(): Message[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved) as Message[];
+  } catch (e) {
+    console.warn("Failed to load messages", e);
+  }
+  return MOCK_MESSAGES;
+}
 
 export default function Index() {
   const [tab, setTab] = useState<Tab>("chats");
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
+  const [messages, setMessages] = useState<Message[]>(loadMessages);
   const [inputText, setInputText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isTypingAI, setIsTypingAI] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch (e) {
+      console.warn("Failed to save messages", e);
+    }
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!inputText.trim()) return;
@@ -89,9 +108,18 @@ export default function Index() {
               </div>
             </div>
             {activeChat.type === "ai" && (
-              <div className="flex items-center gap-1 bg-green-50 text-green-600 text-xs px-2 py-1 rounded-full">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                онлайн
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-green-50 text-green-600 text-xs px-2 py-1 rounded-full">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                  онлайн
+                </div>
+                <button
+                  onClick={() => { setMessages(MOCK_MESSAGES); }}
+                  className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground"
+                  title="Очистить историю"
+                >
+                  <Icon name="Trash2" size={16} />
+                </button>
               </div>
             )}
           </div>
