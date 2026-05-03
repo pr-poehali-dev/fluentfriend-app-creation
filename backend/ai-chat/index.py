@@ -61,7 +61,7 @@ def handler(event: dict, context) -> dict:
         }
 
     api_key = os.environ["YANDEX_API_KEY"]
-    folder_id = os.environ["YANDEX_FOLDER_ID"]
+    folder_id = "b1gtt57bmldd2u69h26h"
 
     messages = [{"role": "system", "text": SYSTEM_PROMPT}]
     for h in history[-10:]:
