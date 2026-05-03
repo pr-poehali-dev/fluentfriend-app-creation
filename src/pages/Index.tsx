@@ -15,7 +15,6 @@ export default function Index() {
   const [inputText, setInputText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isTypingAI, setIsTypingAI] = useState(false);
-  const [voicePhase, setVoicePhase] = useState<"idle" | "listening" | "processing" | "speaking">("idle");
 
   const sendMessage = async () => {
     if (!inputText.trim()) return;
@@ -67,17 +66,6 @@ export default function Index() {
       ]);
     } finally {
       setIsTypingAI(false);
-    }
-  };
-
-  const handleVoiceToggle = () => {
-    if (voicePhase === "idle") {
-      setVoicePhase("listening");
-      setTimeout(() => setVoicePhase("processing"), 3000);
-      setTimeout(() => setVoicePhase("speaking"), 4500);
-      setTimeout(() => setVoicePhase("idle"), 7000);
-    } else {
-      setVoicePhase("idle");
     }
   };
 
@@ -136,9 +124,7 @@ export default function Index() {
             sendMessage={sendMessage}
           />
         )}
-        {tab === "voice" && (
-          <VoiceTab voicePhase={voicePhase} handleVoiceToggle={handleVoiceToggle} />
-        )}
+        {tab === "voice" && <VoiceTab />}
         {tab === "profile" && <ProfileTab />}
         {tab === "settings" && <SettingsTab />}
       </main>
