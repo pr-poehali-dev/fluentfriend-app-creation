@@ -60,7 +60,7 @@ def handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "message is required"}),
         }
 
-    oauth_token = "y0__wgBEKnHt4YHGMHdEyDdr_umFzCm6brmB17GWgJoTX0Zjg8B-KwZAMHWzrP5"  # v4
+    oauth_token = "y0__wgBEKnHt4YHGMHdEyDdr_umFzCm6brmB17GWgJoTX0Zjg8B-KwZAMHWzrP5"  # v5
     folder_id = "b1gtt57bmldd2u69h26h"
 
     # Получаем IAM-токен из OAuth
