@@ -1,7 +1,8 @@
 import json
 import os
+import uuid
 import urllib.request
-import urllib.error
+import ssl
 
 
 SYSTEM_PROMPT = """You are FluentFriend — a friendly English tutor. Your job is to:
@@ -34,8 +35,30 @@ Rules:
 - Explanation must be in Russian"""
 
 
+def get_gigachat_token() -> str:
+    credentials = os.environ["GIGACHAT_CREDENTIALS"]
+    payload = "scope=GIGACHAT_API_PERS".encode("utf-8")
+    req = urllib.request.Request(
+        "https://ngw.devices.sberbank.ru:9443/api/v2/oauth",
+        data=payload,
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+            "Authorization": f"Basic {credentials}",
+            "RqUID": str(uuid.uuid4()),
+        },
+        method="POST",
+    )
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    with urllib.request.urlopen(req, context=ctx) as resp:
+        data = json.loads(resp.read())
+    return data["access_token"]
+
+
 def handler(event: dict, context) -> dict:
-    """ИИ-репетитор английского языка на базе ChatGPT."""
+    """ИИ-репетитор английского языка на базе GigaChat."""
     if event.get("httpMethod") == "OPTIONS":
         return {
             "statusCode": 200,
@@ -59,33 +82,44 @@ def handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "message is required"}),
         }
 
+    token = get_gigachat_token()
+
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for h in history[-10:]:
         messages.append({"role": h["role"], "content": h["content"]})
     messages.append({"role": "user", "content": user_message})
 
-    api_key = os.environ["OPENAI_API_KEY"]
     payload = json.dumps({
-        "model": "gpt-4o-mini",
+        "model": "GigaChat",
         "messages": messages,
         "temperature": 0.7,
-        "max_tokens": 300,
+        "max_tokens": 512,
     }).encode("utf-8")
 
     req = urllib.request.Request(
-        "https://api.openai.com/v1/chat/completions",
+        "https://gigachat.devices.sberbank.ru/api/v1/chat/completions",
         data=payload,
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
+            "Accept": "application/json",
+            "Authorization": f"Bearer {token}",
         },
         method="POST",
     )
-
-    with urllib.request.urlopen(req) as resp:
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    with urllib.request.urlopen(req, context=ctx) as resp:
         result = json.loads(resp.read())
 
     content = result["choices"][0]["message"]["content"]
+
+    # GigaChat иногда оборачивает ответ в markdown-блок ```json ... ```
+    if content.strip().startswith("```"):
+        content = content.strip().strip("`").strip()
+        if content.startswith("json"):
+            content = content[4:].strip()
+
     parsed = json.loads(content)
 
     return {

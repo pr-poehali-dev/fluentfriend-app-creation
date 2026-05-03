@@ -6,6 +6,8 @@ import VoiceTab from "@/components/fluent/VoiceTab";
 import ProfileTab from "@/components/fluent/ProfileTab";
 import SettingsTab from "@/components/fluent/SettingsTab";
 
+const AI_CHAT_URL = "https://functions.poehali.dev/4439836c-a584-4b76-b30a-6432ee661613";
+
 export default function Index() {
   const [tab, setTab] = useState<Tab>("chats");
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
@@ -15,29 +17,57 @@ export default function Index() {
   const [isTypingAI, setIsTypingAI] = useState(false);
   const [voicePhase, setVoicePhase] = useState<"idle" | "listening" | "processing" | "speaking">("idle");
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!inputText.trim()) return;
+    const now = new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" });
     const newMsg: Message = {
       id: messages.length + 1,
       text: inputText,
       sender: "me",
-      timestamp: new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
+      timestamp: now,
     };
-    setMessages((prev) => [...prev, newMsg]);
+    const updatedMessages = [...messages, newMsg];
+    setMessages(updatedMessages);
     setInputText("");
     setIsTypingAI(true);
-    setTimeout(() => {
-      setIsTypingAI(false);
+
+    try {
+      const history = updatedMessages.map((m) => ({
+        role: m.sender === "me" ? "user" : "assistant",
+        content: m.text,
+      }));
+
+      const resp = await fetch(AI_CHAT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: inputText, history: history.slice(0, -1) }),
+      });
+      const data = await resp.json();
+      const replyTime = new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" });
+
       setMessages((prev) => [
         ...prev,
         {
           id: prev.length + 1,
-          text: "That's a great point! Keep going — your English is improving every day.",
+          text: data.reply,
+          sender: "other",
+          timestamp: replyTime,
+          correction: data.correction ?? undefined,
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          text: "Oops, something went wrong. Please try again!",
           sender: "other",
           timestamp: new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
-    }, 2000);
+    } finally {
+      setIsTypingAI(false);
+    }
   };
 
   const handleVoiceToggle = () => {
