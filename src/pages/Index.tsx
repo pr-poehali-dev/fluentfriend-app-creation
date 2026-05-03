@@ -5,6 +5,7 @@ import ChatTab from "@/components/fluent/ChatTab";
 import VoiceTab from "@/components/fluent/VoiceTab";
 import ProfileTab from "@/components/fluent/ProfileTab";
 import SettingsTab from "@/components/fluent/SettingsTab";
+import { useStats } from "@/components/fluent/useStats";
 
 const AI_CHAT_URL = "https://functions.poehali.dev/4439836c-a584-4b76-b30a-6432ee661613";
 const STORAGE_KEY = "fluentfriend_messages";
@@ -26,6 +27,7 @@ export default function Index() {
   const [inputText, setInputText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isTypingAI, setIsTypingAI] = useState(false);
+  const { stats, settings, addMessage, updateSetting } = useStats();
 
   useEffect(() => {
     try {
@@ -62,6 +64,9 @@ export default function Index() {
       });
       const data = await resp.json();
       const replyTime = new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" });
+      const hasCorrection = !!data.correction;
+
+      addMessage(hasCorrection);
 
       setMessages((prev) => [
         ...prev,
@@ -131,7 +136,7 @@ export default function Index() {
             </div>
             <div className="flex items-center gap-1.5 bg-orange-50 text-orange-600 text-sm px-3 py-1.5 rounded-full font-medium">
               <Icon name="Flame" size={14} />
-              12
+              {stats.streak}
             </div>
           </div>
         )}
@@ -153,8 +158,8 @@ export default function Index() {
           />
         )}
         {tab === "voice" && <VoiceTab />}
-        {tab === "profile" && <ProfileTab />}
-        {tab === "settings" && <SettingsTab />}
+        {tab === "profile" && <ProfileTab stats={stats} settings={settings} />}
+        {tab === "settings" && <SettingsTab settings={settings} updateSetting={updateSetting} />}
       </main>
 
       {/* Bottom navigation */}
