@@ -35,7 +35,7 @@ Rules:
 
 
 def handler(event: dict, context) -> dict:
-    """ИИ-репетитор английского языка на базе DeepSeek. v2"""
+    """ИИ-репетитор английского языка на базе YandexGPT."""
     if event.get("httpMethod") == "OPTIONS":
         return {
             "statusCode": 200,
@@ -59,27 +59,32 @@ def handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "message is required"}),
         }
 
-    api_key = os.environ["DEEPSEEK_API_KEY"]
+    api_key = os.environ["YANDEX_API_KEY"]
+    folder_id = os.environ["YANDEX_FOLDER_ID"]
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages = [{"role": "system", "text": SYSTEM_PROMPT}]
     for h in history[-10:]:
-        messages.append({"role": h["role"], "content": h["content"]})
-    messages.append({"role": "user", "content": user_message})
+        role = h["role"] if h["role"] in ("user", "assistant") else "user"
+        messages.append({"role": role, "text": h["content"]})
+    messages.append({"role": "user", "text": user_message})
 
     payload = json.dumps({
-        "model": "deepseek-chat",
+        "modelUri": f"gpt://{folder_id}/yandexgpt-lite",
+        "completionOptions": {
+            "stream": False,
+            "temperature": 0.7,
+            "maxTokens": 500,
+        },
         "messages": messages,
-        "temperature": 0.7,
-        "max_tokens": 500,
-        "response_format": {"type": "json_object"},
     }).encode("utf-8")
 
     req = urllib.request.Request(
-        "https://api.deepseek.com/chat/completions",
+        "https://llm.api.cloud.yandex.net/foundationModels/v1/completion",
         data=payload,
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Api-Key {api_key}",
+            "x-folder-id": folder_id,
         },
         method="POST",
     )
@@ -92,10 +97,18 @@ def handler(event: dict, context) -> dict:
         return {
             "statusCode": 502,
             "headers": {"Access-Control-Allow-Origin": "*"},
-            "body": json.dumps({"error": f"DeepSeek error {e.code}: {error_body}"}),
+            "body": json.dumps({"error": f"YandexGPT error {e.code}: {error_body}"}),
         }
 
-    content = result["choices"][0]["message"]["content"]
+    content = result["result"]["alternatives"][0]["message"]["text"]
+
+    content = content.strip()
+    if content.startswith("```"):
+        content = content.split("```")[1]
+        if content.startswith("json"):
+            content = content[4:]
+        content = content.strip()
+
     parsed = json.loads(content)
 
     return {
