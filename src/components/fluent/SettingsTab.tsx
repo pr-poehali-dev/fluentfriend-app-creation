@@ -136,7 +136,7 @@ export default function SettingsTab({ settings, updateSetting }: SettingsTabProp
         </div>
         <button
           onClick={() => {
-            if (confirm("Сбросить весь прогресс и статистику?")) {
+            if (confirm("Сбросить весь прогресс и статистику? Это действие нельзя отменить.")) {
               localStorage.removeItem("ff_stats");
               localStorage.removeItem("ff_settings");
               localStorage.removeItem("fluentfriend_messages");

@@ -78,9 +78,9 @@ export default function VoiceTab() {
       if (event.error === "not-allowed") {
         setError("Нет доступа к микрофону. Разреши доступ в браузере.");
       } else if (event.error === "no-speech") {
-        setError("Речь не распознана. Попробуй ещё раз.");
+        setError("Речь не услышана. Говори громче или попробуй ещё раз.");
       } else {
-        setError(`Ошибка: ${event.error}`);
+        setError(`Ошибка распознавания: ${event.error}`);
       }
       setPhase("idle");
     };
@@ -200,7 +200,7 @@ export default function VoiceTab() {
 
       <div className="text-sm font-medium text-muted-foreground mb-6">
         {phase === "idle" && "Нажми и говори"}
-        {phase === "listening" && "Слушаю... нажми чтобы остановить"}
+        {phase === "listening" && "Слушаю… нажми, чтобы остановить"}
         {phase === "result" && "Готово!"}
       </div>
 

@@ -16,7 +16,7 @@ const LEVEL_XP: Record<string, { next: string; max: number }> = {
 
 const ALL_ACHIEVEMENTS = [
   { icon: "🔥", name: "На огне", desc: "7 дней подряд", check: (s: Stats) => s.streak >= 7 },
-  { icon: "🗣️", name: "Говорун", desc: "50 сообщений", check: (s: Stats) => s.minutesPracticed >= 50 },
+  { icon: "🗣️", name: "Говорун", desc: "50 практик", check: (s: Stats) => s.minutesPracticed >= 50 },
   { icon: "📚", name: "Читатель", desc: "100 слов изучено", check: (s: Stats) => s.wordsLearned >= 100 },
   { icon: "⚡", name: "Первый шаг", desc: "Начал практику", check: (s: Stats) => s.xp > 0 },
   { icon: "🎯", name: "Точность", desc: "10 исправлений", check: (s: Stats) => s.corrections >= 10 },
@@ -35,7 +35,7 @@ export default function ProfileTab({ stats, settings }: ProfileTabProps) {
   const statCards = [
     { label: "Дней подряд", value: String(stats.streak), icon: "Flame", color: "text-orange-500" },
     { label: "Слов изучено", value: String(stats.wordsLearned), icon: "BookOpen", color: "text-blue-500" },
-    { label: "Сообщений", value: String(stats.minutesPracticed), icon: "MessageCircle", color: "text-green-500" },
+    { label: "Практик", value: String(stats.minutesPracticed), icon: "MessageCircle", color: "text-green-500" },
     { label: "Исправлений", value: String(stats.corrections), icon: "CheckCircle", color: "text-purple-500" },
   ];
 
@@ -100,7 +100,7 @@ export default function ProfileTab({ stats, settings }: ProfileTabProps) {
           })}
         </div>
         {stats.weekActivity.every((v) => v === 0) && (
-          <p className="text-xs text-muted-foreground text-center mt-3">Начни практику — здесь появится твой прогресс</p>
+          <p className="text-xs text-muted-foreground text-center mt-3">Начни практику — здесь появится твоя активность</p>
         )}
       </div>
 
@@ -146,7 +146,7 @@ export default function ProfileTab({ stats, settings }: ProfileTabProps) {
           <span className="text-sm text-primary font-semibold">{stats.xp} / {levelInfo.max} XP</span>
         </div>
         <Progress value={xpProgress} className="h-2.5" />
-        <p className="text-xs text-muted-foreground mt-2">Осталось {Math.max(0, levelInfo.max - stats.xp)} XP до уровня {levelInfo.next}</p>
+        <p className="text-xs text-muted-foreground mt-2">Ещё {Math.max(0, levelInfo.max - stats.xp)} XP до уровня {levelInfo.next}</p>
       </div>
     </div>
   );
