@@ -60,7 +60,7 @@ def handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "message is required"}),
         }
 
-    api_key = os.environ["YANDEX_API_KEY"]
+    api_key = "YCAJEHaOcFBS4q6DwssLJKcYE:YCMIyQn4uP1AdH8nUlnPZMckmZa4UaqLq36K2_bw"
     folder_id = "b1gtt57bmldd2u69h26h"
 
     messages = [{"role": "system", "text": SYSTEM_PROMPT}]
