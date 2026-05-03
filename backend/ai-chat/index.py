@@ -35,7 +35,7 @@ Rules:
 
 
 def handler(event: dict, context) -> dict:
-    """ИИ-репетитор английского языка на базе DeepSeek."""
+    """ИИ-репетитор английского языка на базе DeepSeek. v2"""
     if event.get("httpMethod") == "OPTIONS":
         return {
             "statusCode": 200,
