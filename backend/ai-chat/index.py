@@ -60,8 +60,19 @@ def handler(event: dict, context) -> dict:
             "body": json.dumps({"error": "message is required"}),
         }
 
-    api_key = "AQVNyt_Q8vo40qlb1HlxStZMDjPjwlSBtyyGbV_x"  # v3
+    oauth_token = "y0__wgBEKnHt4YHGMHdEyDdr_umFzCm6brmB17GWgJoTX0Zjg8B-KwZAMHWzrP5"
     folder_id = "b1gtt57bmldd2u69h26h"
+
+    # Получаем IAM-токен из OAuth
+    iam_payload = json.dumps({"yandexPassportOauthToken": oauth_token}).encode("utf-8")
+    iam_req = urllib.request.Request(
+        "https://iam.api.cloud.yandex.net/iam/v1/tokens",
+        data=iam_payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(iam_req, timeout=10) as iam_resp:
+        iam_token = json.loads(iam_resp.read())["iamToken"]
 
     messages = [{"role": "system", "text": SYSTEM_PROMPT}]
     for h in history[-10:]:
@@ -84,7 +95,7 @@ def handler(event: dict, context) -> dict:
         data=payload,
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Api-Key {api_key}",
+            "Authorization": f"Bearer {iam_token}",
             "x-folder-id": folder_id,
         },
         method="POST",
